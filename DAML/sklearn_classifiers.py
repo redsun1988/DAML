@@ -7,8 +7,8 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import train_test_split, GridSearchCV
-from abstract_classifiers import DlSingleClassifier
-from sklearn_parameters import SklearnModelParameters
+from .abstract_classifiers import DlSingleClassifier
+from .sklearn_parameters import SklearnModelParameters
 
 class DlSklearClassifier(DlSingleClassifier):
     def __init__(self) -> None:

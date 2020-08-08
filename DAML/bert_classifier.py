@@ -1,4 +1,4 @@
-from abstract_classifiers import DlBaseClassifier
+from .abstract_classifiers import DlBaseClassifier
 from transformers import BertTokenizer
 from transformers import get_linear_schedule_with_warmup
 from transformers import BertForSequenceClassification, AdamW, BertConfig
@@ -14,14 +14,15 @@ class DlBertClassifier(DlBaseClassifier):
     # "bert-base-multilingual-uncased"
     # "bert-base-uncased",
     # "DeepPavlov/rubert-base-cased"
-    def __init__(self, bert_model:str = "bert-base-uncased") -> None:
+    def __init__(self, model_type:str = "bert-base-uncased") -> None:
         self._epochs = 1
         self._batch_size = 12
         self._MAX_LEN = 512
-        self.bert_model = bert_model
+        self._model_type = model_type
+        self._model == None
 
         self.tokenizer = BertTokenizer.from_pretrained(
-            self.bert_model,
+            self._model_type,
             do_lower_case=True)
         self.is_cuda = torch.cuda.is_available()
         if self.is_cuda:
@@ -49,8 +50,8 @@ class DlBertClassifier(DlBaseClassifier):
 
     def create_model(self):
         bert = BertForSequenceClassification.from_pretrained(
-            self.bert_model, # Use the 12-layer BERT model, with an uncased vocab.
-            num_labels = 3, # The number of output labels--2 for binary classification.
+            self._model_type, # Use the 12-layer BERT model, with an uncased vocab.
+            num_labels = len(self._classes), # The number of output labels--2 for binary classification.
                             # You can increase this for multi-class tasks.   
             output_attentions = False, # Whether the model returns attentions weights.
             output_hidden_states = False, # Whether the model returns all hidden-states.
@@ -85,8 +86,10 @@ class DlBertClassifier(DlBaseClassifier):
         return input_ids, attention_masks
     
     def fit(self, x: List[str], y: List[int]) -> None:
-        if not hasattr(self, "_model"):
+        self._classes: List[int] = np.unique(y)
+        if self._model == None:
             self._model = self.create_model()
+
         
         input_ids, attention_masks = self._convert_text(x)
         self.optimizer = AdamW(
@@ -112,18 +115,6 @@ class DlBertClassifier(DlBaseClassifier):
 
         for epoch in range(self.epochs):
             self._do_epoch(epoch, dataloader)
-
-    def load_model(self, path: str):
-        BertForSequenceClassification.from_pretrained(
-            path, 
-            num_labels = 3, # The number of output labels--2 for binary classification.
-            output_attentions = False, # Whether the model returns attentions weights.
-            output_hidden_states = False, # Whether the model returns all hidden-states.
-        )
-        if self.is_cuda:
-            bert.cuda()
-    
-        self._model = bert 
             
     def score(self, prediction, labels):
         correct_samples = torch.sum(prediction == labels).cpu().numpy()
@@ -133,11 +124,10 @@ class DlBertClassifier(DlBaseClassifier):
         accuracy = 0
         epoch_loss = 0
 
-        batch_count = len(data)
         self._model.train(True)
 
         with torch.autograd.set_grad_enabled(True):
-            with tqdm(total=batch_count) as progress_bar:               
+            with tqdm(total=len(data)) as progress_bar:               
                 for ind, batch in enumerate(data):
                     X_batch = batch[0].to(self.device)
                     X_mask = batch[1].to(self.device)
@@ -174,8 +164,8 @@ class DlBertClassifier(DlBaseClassifier):
 
     def predict(self, x: List[str]) -> List[int]:
         if not self._model:
-            raise RuntimeError("_model is not initialized")
-        
+           self._model = self.create_model()
+
         input_ids, attention_masks = self._convert_text(x)
         
         data = TensorDataset(
@@ -189,7 +179,7 @@ class DlBertClassifier(DlBaseClassifier):
         predictions = np.zeros(len(x))
         index = 0
         with torch.autograd.set_grad_enabled(False):
-            for ind, batch in enumerate(dataloader):
+            for batch in dataloader:
                 X_batch = batch[0].to(self.device)
                 X_mask = batch[1].to(self.device)
                 
@@ -203,3 +193,6 @@ class DlBertClassifier(DlBaseClassifier):
                     predictions[index] = label
                     index += 1
         return predictions
+
+    def save_model(self, path: str) -> None:
+        self._model.save_pretrained(path)
