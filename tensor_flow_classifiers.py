@@ -14,20 +14,18 @@ class DlTensorTextClassifier(DlSingleClassifier):
         self.trunc_type='post'
         self.padding_type='post'
         self.oov_tok = "<OOV>"
-        self.tokenizer: Tokenizer = Tokenizer(
-            num_words=self.vocab_size, 
-            oov_token=self.oov_tok)
         self.num_epochs: int = 50
+        self.tokenizer = self._create_tokenizer()
+
+    def _create_tokenizer(self):
+        raise NotImplementedError("Implement this method for %s" % self.__class__.__name__)
+
     def _convert_text(self, x) -> List[List[str]]:
-        return pad_sequences(
-            self.tokenizer.texts_to_sequences(x),
-            maxlen=self.max_length, 
-            padding=self.padding_type, 
-            truncating=self.trunc_type)
+        raise NotImplementedError("Implement this method for %s" % self.__class__.__name__)
 
     def fit(self, x: List[str], y:List[int]):
         self._classes: List = np.unique(y)
-        self._model: tf.keras.Sequential = self.create_model()
+        self._model = self.create_model()
         self.tokenizer.fit_on_texts(x)
         padded_x = self._convert_text(x)
 
@@ -43,6 +41,7 @@ class DlTensorTextClassifier(DlSingleClassifier):
             epochs=self.num_epochs, 
             verbose=1,
             callbacks=[tf.keras.callbacks.EarlyStopping()])
+            
     def predict(self, x: List[str]) -> List[int]:
         padded_text = self._convert_text(x)
         if len(self._classes) > 2:
@@ -54,7 +53,13 @@ class DlTensorTextClassifier(DlSingleClassifier):
         return self._model.evaluate(
             self._convert_text(x), 
             to_categorical(y, len(self._classes)) if len(self._classes) > 2 else y)[1]
+
 class DlConvTextClassifier(DlTensorTextClassifier):
+    def _create_tokenizer(self):
+        return Tokenizer(
+            num_words=self.vocab_size, 
+            oov_token=self.oov_tok)
+
     def create_model(self):
         layers = [
             tf.keras.layers.Embedding(
@@ -71,3 +76,10 @@ class DlConvTextClassifier(DlTensorTextClassifier):
             layers.append(tf.keras.layers.Dense(1, activation='sigmoid'))
 
         return tf.keras.Sequential(layers)
+
+    def _convert_text(self, x) -> List[List[float]]:
+        return pad_sequences(
+            self.tokenizer.texts_to_sequences(x),
+            maxlen=self.max_length, 
+            padding=self.padding_type, 
+            truncating=self.trunc_type)

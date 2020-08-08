@@ -4,7 +4,8 @@ from dolly_auto_classifiers import DlTextAutoClassifier
 import sklearn
 from sklearn.datasets import fetch_20newsgroups
 from sklearn.svm import LinearSVC
-
+import pandas as pd
+from data_balanser import DataBalanser
 
 @pytest.fixture
 def clfr_args():
@@ -30,3 +31,13 @@ def test_predict_range_DlClassifier(clfr_args):
 def test_predict_valuse_DlClassifier(clfr_args):
     clfr, x, y = clfr_args[0], clfr_args[1], clfr_args[2]
     assert any(p1 == p2 for p1, p2 in zip(clfr.predict(x), clfr._models[0].predict(x)))
+
+
+def test_data_balanser():
+    data_set = pd.DataFrame(
+        data=[(1), (1), (1), (1), (0), (0)], 
+        columns=["target"])
+    data_balanser = DataBalanser(data_set)
+    data_balanser.stategy = "downsampling"
+    data_balanser.target_field = "target"
+    assert len(data_balanser.target) == 4
