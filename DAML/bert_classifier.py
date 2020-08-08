@@ -19,7 +19,7 @@ class DlBertClassifier(DlBaseClassifier):
         self._batch_size = 12
         self._MAX_LEN = 512
         self._model_type = model_type
-        self._model == None
+        self._model = None
 
         self.tokenizer = BertTokenizer.from_pretrained(
             self._model_type,
