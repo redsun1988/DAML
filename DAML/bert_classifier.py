@@ -19,7 +19,7 @@ class DlBertClassifier(DlBaseClassifier):
         self._batch_size = 12
         self._MAX_LEN = 512
         self.bert_model = bert_model
-        #'bert-base-uncased', "DeepPavlov/rubert-base-cased" "bert-base-multilingual-uncased"
+
         self.tokenizer = BertTokenizer.from_pretrained(
             self.bert_model,
             do_lower_case=True)

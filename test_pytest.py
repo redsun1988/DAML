@@ -1,11 +1,11 @@
 import pytest
 import numpy as np
-from dolly_auto_classifiers import DlTextAutoClassifier
+from DAML.dolly_auto_classifiers import DlTextAutoClassifier
 import sklearn
 from sklearn.datasets import fetch_20newsgroups
 from sklearn.svm import LinearSVC
 import pandas as pd
-from data_balanser import DataBalanser
+from DAML.data_balanser import DataBalanser
 
 @pytest.fixture
 def clfr_args():
